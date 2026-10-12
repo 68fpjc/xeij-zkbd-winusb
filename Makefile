@@ -67,7 +67,7 @@ test: all
 
 $(PROGRAM).jar: $(MANIFEST) $(REP_CLASS_FILE) $(DATA_DIR)/*
 	-rm $@
-	$(JAR) cfm $@ $(MANIFEST) -C $(CLASS_DIR) . -C . $(DATA_DIR)/*
+	$(JAR) cfm $@ $(MANIFEST) -C $(CLASS_DIR) . -C . $(DATA_DIR)/* -C . libusb
 
 $(MANIFEST): Makefile
 	echo "Manifest-Version: 1.0" > $@

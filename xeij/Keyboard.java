@@ -5740,7 +5740,9 @@ public class Keyboard {
   public static boolean kbdZKeyOnRequest;  //true=Zキーボードを制御する
   public static boolean kbdZKeyOn;  //true=Zキーボードを制御する
   public static int kbdZKeyStatus;  //LEDの状態。bit0=かな,…,bit7=全角,0=消灯,1=点灯。ポートが開いていなくても更新する
-  public static ZKeyLEDPort kbdZKeyPort;  //ポート
+  public static ZKeyPort kbdZKeyPort;  //ポート
+  public static int kbdZKeyMode;  //0=HIDのみ,1=自動(WinUSB優先),2=WinUSBのみ
+  public static boolean kbdZKeyIsUsb;  //true=ポートはWinUSB(libusb)。キーマップの入れ替えやNumLock制御は行わない
   public static boolean kbdZKeyDebugFlag;  //デバッグフラグ
   //  I/Oポート
   //  $00E9F040  かな
@@ -6858,6 +6860,8 @@ public class Keyboard {
       kbdZKeyOn = false;
       kbdZKeyStatus = 0;
       kbdZKeyPort = null;
+      kbdZKeyMode = Settings.sgsGetInt ("zkeymode", 0, 0, 2);
+      kbdZKeyIsUsb = false;
       kbdZKeyDebugFlag = false;
       //  I/Oポート
       kbdZKeyIOData = 0L;
@@ -6905,6 +6909,15 @@ public class Keyboard {
               }
             }
             break;
+          case "HID only":  //HID のみ
+            kbdZKeyMode = 0;
+            break;
+          case "Auto (WinUSB first)":  //自動
+            kbdZKeyMode = 1;
+            break;
+          case "WinUSB only":  //WinUSB のみ
+            kbdZKeyMode = 2;
+            break;
           case "LED operation chedk":  //LED の動作確認
             if (KBD_ZKEY_ON) {
               if (((JCheckBoxMenuItem) source).isSelected ()) {
@@ -6925,6 +6938,7 @@ public class Keyboard {
           }
         }
       };
+      ButtonGroup zkeyModeGroup = new ButtonGroup ();
       kbdZKeyMenu = !KBD_ZKEY_ON ? null : Multilingual.mlnText (
         ComponentFactory.createMenu (
           "Z keyboard",
@@ -6938,6 +6952,16 @@ public class Keyboard {
               ComponentFactory.createCheckBoxMenuItem (demoThread != null, "LED operation chedk", listener),
               "ja", "LED の動作確認"),
             kbdZKeyOn),
+          ComponentFactory.createHorizontalSeparator (),
+          Multilingual.mlnText (
+            ComponentFactory.createRadioButtonMenuItem (zkeyModeGroup, kbdZKeyMode == 0, "HID only", listener),
+            "ja", "HID のみ (次回接続から)"),
+          Multilingual.mlnText (
+            ComponentFactory.createRadioButtonMenuItem (zkeyModeGroup, kbdZKeyMode == 1, "Auto (WinUSB first)", listener),
+            "ja", "自動 (WinUSB 優先)"),
+          Multilingual.mlnText (
+            ComponentFactory.createRadioButtonMenuItem (zkeyModeGroup, kbdZKeyMode == 2, "WinUSB only", listener),
+            "ja", "WinUSB のみ"),
           ComponentFactory.createHorizontalSeparator (),
           Multilingual.mlnText (
             ComponentFactory.createCheckBoxMenuItem (kbdZKeyDebugFlag, "Debug flag", listener),
@@ -7347,7 +7371,7 @@ public class Keyboard {
   public static void kbdTini () {
 
     //キーマップを保存する
-    if (KBD_ZKEY_ON && kbdZKeyPort != null) {  //Zキーボード
+    if (KBD_ZKEY_ON && kbdZKeyPort != null && !kbdZKeyIsUsb) {  //Zキーボード
       System.arraycopy (kbdCurrentMap, 0,  //from
                         kbdCurrentMapZ, 0,  //to
                         KBD_DEFAULT_MAP_WIN.length);  //length
@@ -7395,6 +7419,7 @@ public class Keyboard {
     //Zキーボード
     if (KBD_ZKEY_ON) {
       Settings.sgsPutOnOff ("zkeyboard", kbdZKeyOnRequest);
+      Settings.sgsPutInt ("zkeymode", kbdZKeyMode);
       kbdZKeyClose ();
       int[] map;
       if (Arrays.equals (kbdCurrentMapZ, kbdDefaultMapZ)) {  //デフォルトマップと同じ
@@ -7733,7 +7758,7 @@ public class Keyboard {
           }
           kbdCloseIME ();  //IMEが開いていたら閉じる
           int keyCode = ke.getKeyCode ();
-          if (KBD_ZKEY_ON && kbdZKeyPort != null) {  //Zキーボード
+          if (KBD_ZKEY_ON && kbdZKeyPort != null && !kbdZKeyIsUsb) {  //Zキーボード
             switch (keyCode) {
             case KeyEvent.VK_HALF_WIDTH:  //BREAK 半角(VK 244)
             case KeyEvent.VK_FULL_WIDTH:  //BREAK 全角(VK 243)
@@ -7776,7 +7801,7 @@ public class Keyboard {
           kbdCloseIME ();  //IMEが開いていたら閉じる
           int keyCode = ke.getKeyCode ();
           int keyLocation = ke.getKeyLocation ();
-          if (KBD_ZKEY_ON && kbdZKeyPort != null) {  //Zキーボード
+          if (KBD_ZKEY_ON && kbdZKeyPort != null && !kbdZKeyIsUsb) {  //Zキーボード
             switch (keyCode) {
             case KeyEvent.VK_HALF_WIDTH:  //BREAK 半角(VK 244)
             case KeyEvent.VK_FULL_WIDTH:  //BREAK 全角(VK 243)
@@ -7876,7 +7901,7 @@ public class Keyboard {
                                kbdUSLayoutOn ? KBD_DEFAULT_MAP_WIN_US : KBD_DEFAULT_MAP_WIN);
           break;
         case "Default":  //初期値
-          kbdEditor.reset (KBD_ZKEY_ON && kbdZKeyPort != null ? kbdDefaultMapZ : kbdDefaultMapNonZ);
+          kbdEditor.reset (KBD_ZKEY_ON && kbdZKeyPort != null && !kbdZKeyIsUsb ? kbdDefaultMapZ : kbdDefaultMapNonZ);
           break;
         case "Save":  //保存
           kbdEditor.save ();
@@ -8670,10 +8695,36 @@ public class Keyboard {
     if (KBD_ZKEY_ON) {
       if (kbdZKeyPort == null) {
         //ポートを開く
-        try {
-          kbdZKeyPort = new ZKeyLEDPort (kbdZKeyDebugFlag);
-        } catch (IOException ioe) {
-          //ioe.printStackTrace ();
+        kbdZKeyIsUsb = false;
+        if (kbdZKeyMode != 0) {
+          try {
+            kbdZKeyPort = new ZKeyUsbPort ((code, pressed) -> {
+              SwingUtilities.invokeLater (() -> {
+                if (kbdZKeyPort == null || !kbdZKeyIsUsb) {
+                  return;
+                }
+                if (pressed) {
+                  if (XEiJ.frmFrame != null && XEiJ.frmFrame.isActive ()) {  //フォーカスがあるときだけ押す
+                    kbdCommandPress (code);
+                  }
+                } else {
+                  kbdCommandRelease (code);
+                }
+              });
+            }, kbdZKeyDebugFlag);
+            kbdZKeyIsUsb = true;
+          } catch (IOException ioe) {
+            if (kbdZKeyDebugFlag || kbdZKeyMode == 2) {
+              System.out.println ("WinUSB: " + ioe.getMessage ());
+            }
+          }
+        }
+        if (kbdZKeyPort == null && kbdZKeyMode != 2) {
+          try {
+            kbdZKeyPort = new ZKeyLEDPort (kbdZKeyDebugFlag);
+          } catch (IOException ioe) {
+            //ioe.printStackTrace ();
+          }
         }
         //開けなかったら終了
         if (kbdZKeyPort == null) {
@@ -8688,6 +8739,7 @@ public class Keyboard {
         }
         //送信スレッドを開始する
         senderStart ();
+        if (!kbdZKeyIsUsb) {
         //Zキーボード以外のキーマップを保存する
         System.arraycopy (kbdCurrentMap, 0,  //from
                           kbdCurrentMapNonZ, 0,  //to
@@ -8707,6 +8759,7 @@ public class Keyboard {
           kbdIgnoreNumLock = true;  //NumLockを1回無視する
           kbdZKeyPort.hitKey (KeyEvent.VK_NUM_LOCK);  //NumLockを叩いて点灯させる。直ちに発火することに注意
         }
+        }  //if !kbdZKeyIsUsb
       }
       if (!kbdZKeyOn) {
         System.out.printf (Multilingual.mlnJapanese ?
@@ -8728,7 +8781,7 @@ public class Keyboard {
       demoEnd ();
       if (kbdZKeyPort != null) {
         //NumLockを復元する
-        if (kbdSavedNumLock != kbdZKeyPort.isKeyToggled (KeyEvent.VK_NUM_LOCK)) {  //保存したNumLockと違う
+        if (!kbdZKeyIsUsb && kbdSavedNumLock != kbdZKeyPort.isKeyToggled (KeyEvent.VK_NUM_LOCK)) {  //保存したNumLockと違う
           kbdIgnoreNumLock = true;  //NumLockを1回無視する
           kbdZKeyPort.hitKey (KeyEvent.VK_NUM_LOCK);  //NumLockを叩いて戻す
         }
@@ -8742,6 +8795,9 @@ public class Keyboard {
         //ポートを閉じる
         kbdZKeyPort.close ();
         kbdZKeyPort = null;
+        if (kbdZKeyIsUsb) {
+          kbdZKeyIsUsb = false;
+        } else {
         //Zキーボードのキーマップを保存する
         System.arraycopy (kbdCurrentMap, 0,  //from
                           kbdCurrentMapZ, 0,  //to
@@ -8754,6 +8810,7 @@ public class Keyboard {
         if (kbdEditor != null) {
           kbdEditor.updateTextAll ();
         }
+        }  //if usb else
       }
       if (kbdZKeyOn) {
         System.out.printf (Multilingual.mlnJapanese ?

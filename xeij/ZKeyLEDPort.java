@@ -18,7 +18,7 @@ import java.lang.invoke.*;  //MethodHandle
 import java.nio.charset.*;  //StandardCharsets
 import java.util.*;  //NoSuchElementException
 
-public final class ZKeyLEDPort implements AutoCloseable {
+public final class ZKeyLEDPort implements ZKeyPort {
 
   private boolean debugFlag;
   public void setDebugFlag (boolean debugFlag) {
