@@ -2554,7 +2554,8 @@ public class XEiJ {
       //全画面表示に移行できなければ諦めてラジオボタンを修正する
       String text = null;
       if (mode == PNL_FULLSCREEN) {  //変更後が全画面表示
-        if (!pnlIsFullScreenSupported) {  //全画面表示に対応していない
+        GraphicsDevice screenDevice = frmFrame.getGraphicsConfiguration ().getDevice ();
+        if (!screenDevice.isFullScreenSupported ()) {  //全画面表示に対応していない
           JOptionPane.showMessageDialog (
             frmFrame,
             Multilingual.mlnJapanese ?
@@ -2573,6 +2574,7 @@ public class XEiJ {
             break;
           }
         }
+        frmScreenDevice = screenDevice;
       }
       //変更前が全画面表示または最大化のとき
       if (pnlMode == PNL_FULLSCREEN) {  //変更前が全画面表示
@@ -4290,8 +4292,15 @@ public class XEiJ {
   //  フレームを初期化する
   public static void frmInit () {
     frmIsActive = false;
-    frmScreenDevice = GraphicsEnvironment.getLocalGraphicsEnvironment ().getDefaultScreenDevice ();  //スクリーンデバイス
-    pnlIsFullScreenSupported = frmScreenDevice.isFullScreenSupported ();  //全画面表示に移行できるかどうか
+    GraphicsEnvironment environment = GraphicsEnvironment.getLocalGraphicsEnvironment ();
+    frmScreenDevice = environment.getDefaultScreenDevice ();  //スクリーンデバイス
+    pnlIsFullScreenSupported = false;
+    for (GraphicsDevice screenDevice : environment.getScreenDevices ()) {
+      if (screenDevice.isFullScreenSupported ()) {
+        pnlIsFullScreenSupported = true;
+        break;
+      }
+    }
   }  //frmInit()
 
   //frmMake ()
