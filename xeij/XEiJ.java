@@ -4478,15 +4478,66 @@ public class XEiJ {
     ComponentFactory.addListener (
       frmFrame,
       new ComponentAdapter () {
+        private double lastScaleX = 0.0;
+        private double lastScaleY = 0.0;
+        private javax.swing.Timer rebuildTimer;
         @Override public void componentMoved (ComponentEvent ce) {
           Point p = pnlPanel.getLocationOnScreen ();
           pnlGlobalX = p.x;
           pnlGlobalY = p.y;
+          checkScaleChange ();
         }
         @Override public void componentResized (ComponentEvent ce) {
           Point p = pnlPanel.getLocationOnScreen ();
           pnlGlobalX = p.x;
           pnlGlobalY = p.y;
+          checkScaleChange ();
+        }
+        //DPIの異なるディスプレイへ移動したとき、移動中の中途半端なサイズで余白を計算して
+        //タイトルバーやメニューバーが欠けることがあるので、移動が落ち着いてから再構成する
+        private void checkScaleChange () {
+          GraphicsConfiguration gc = frmFrame.getGraphicsConfiguration ();
+          if (gc == null) {
+            return;
+          }
+          java.awt.geom.AffineTransform at = gc.getDefaultTransform ();
+          double sx = at.getScaleX ();
+          double sy = at.getScaleY ();
+          if (lastScaleX != 0.0 && (sx != lastScaleX || sy != lastScaleY) && pnlMode != PNL_FULLSCREEN) {
+            if (rebuildTimer == null) {
+              rebuildTimer = new javax.swing.Timer (300, new ActionListener () {
+                @Override public void actionPerformed (ActionEvent ae) {
+                  if (pnlMode == PNL_FULLSCREEN) {
+                    return;
+                  }
+                  //装飾とメニューバーを張り直し、サイズ制約を外してpackし直してから再配置する
+                  JRootPane rp = frmFrame.getRootPane ();
+                  frmFrame.setJMenuBar (null);
+                  rp.setWindowDecorationStyle (JRootPane.NONE);
+                  rp.setWindowDecorationStyle (JRootPane.FRAME);
+                  frmFrame.setJMenuBar (mnbMenuBar);
+                  if (pnlMode == PNL_FIXEDSCALE) {
+                    frmFrame.setMinimumSize (null);
+                    frmFrame.setMaximumSize (null);
+                    frmFrame.setPreferredSize (null);
+                    frmFrame.setResizable (true);
+                    frmFrame.pack ();
+                    //同じサイズだとネイティブウインドウにリサイズが伝わらないので1pxずらして戻す
+                    Dimension d = frmFrame.getSize ();
+                    frmFrame.setSize (d.width + 1, d.height + 1);
+                  }
+                  pnlUpdateArrangement ();
+                  frmFrame.invalidate ();
+                  frmFrame.validate ();
+                  rp.repaint ();
+                }
+              });
+              rebuildTimer.setRepeats (false);
+            }
+            rebuildTimer.restart ();
+          }
+          lastScaleX = sx;
+          lastScaleY = sy;
         }
       });
 
