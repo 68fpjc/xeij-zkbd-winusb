@@ -2626,7 +2626,7 @@ public class HFS {
         int date = MC68060.mmuReadWordZeroData (fcb + 60, XEiJ.regSRS);  //日付。(西暦年-1980)<<9|月<<5|月通日
         hfuTargetLastModified = DnT.dntCmilYearMontMdayHourMinuSeco (
           (date >> 9) + 1980, date >> 5 & 15, date & 31,
-          time >> 11, time >> 5 & 63, (time & 31) << 1) - RP5C15.rtcCmilGap;  //FCBの日時はRTCの日時なのでオフセットを引く
+          time >> 11, time >> 5 & 63, (time & 31) << 1) - RP5C15.rtcGetOffset ();  //FCBの日時はRTCの日時なのでオフセットを引く
       }
       hfsRequest18Result = 1;  //最終更新日時を設定する
       hfsState = HFS_STATE_HOST;
@@ -3591,7 +3591,7 @@ public class HFS {
                      (file.isHidden () ? HumanMedia.HUM_HIDDEN : 0) |
                      (!file.canWrite () ? HumanMedia.HUM_READONLY : 0));
       //更新日時
-      long dttm = DnT.dntDttmCmil (file.lastModified () + RP5C15.rtcCmilGap);  //西暦年<<42|月<<38|月通日<<32|時<<22|分<<16|秒<<10|ミリ秒。FCBの日時はRTCの日時なのでオフセットを加える
+      long dttm = DnT.dntDttmCmil (file.lastModified () + RP5C15.rtcGetOffset ());  //西暦年<<42|月<<38|月通日<<32|時<<22|分<<16|秒<<10|ミリ秒。FCBの日時はRTCの日時なのでオフセットを加える
       //時刻
       int time = DnT.dntHourDttm (dttm) << 11 | DnT.dntMinuDttm (dttm) << 5 | DnT.dntSecoDttm (dttm) >> 1;  //時<<11|分<<5|秒/2
       b[1] = (byte) (time >> 8);

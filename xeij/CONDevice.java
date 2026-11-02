@@ -2,7 +2,7 @@
 //  CONDevice.java
 //    en:CON device control -- Paste a string from the platform clipboard or named pipe into the Human68k console.
 //    ja:CONデバイス制御 -- プラットフォームのクリップボードまたは名前付きパイプにある文字列をHuman68kのコンソールに貼り付けます。
-//  Copyright (C) 2003-2025 Makoto Kamada
+//  Copyright (C) 2003-2026 Makoto Kamada
 //
 //  This file is part of the XEiJ (X68000 Emulator in Java).
 //  You can use, modify and redistribute the XEiJ if the conditions are met.
@@ -647,6 +647,12 @@ public class CONDevice {
     case "reset":  //リセット
       XEiJ.mpuReset (-1, -1);
       return;
+    case "power":  //電源スイッチ
+      conPower (args, false);
+      return;
+    case "external":  //外部電源スイッチ
+      conPower (args, true);
+      return;
     default:
       System.out.println ("unknown command " + args[0]);
       return;
@@ -680,6 +686,19 @@ public class CONDevice {
       }
     }
   }  //conReleaseKey
+
+  //conPower (args, external)
+  //  電源スイッチ／外部電源スイッチのON/OFF
+  public static void conPower (String[] args, boolean external) {
+    if (args.length == 2) {
+      JCheckBoxMenuItem checkBox = (external ?
+                                    PowerControl.pwcExternalCheckBox :
+                                    PowerControl.pwcPowerCheckBox);
+      if ((checkBox.isSelected () ? "off" : "on").equals (args[1])) {
+        checkBox.doClick ();
+      }
+    }
+  }  //conPower
 
   //class CONPipeThread
   //  パイプスレッド

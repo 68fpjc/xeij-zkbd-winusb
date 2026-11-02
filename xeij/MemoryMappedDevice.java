@@ -3442,175 +3442,13 @@ public enum MemoryMappedDevice {
   },  //MMD_MFP_30
 
   //--------------------------------------------------------------------------------
-  //MMD_RTC_FIRST RTC
+  //MMD_RTC RTC
   //
   //  $00E8A000～$00E8A01F(偶数)  バイトアクセスはバスエラー。ワードリードは$FFxx。ワードライトは$??xx
   //  $00E8A000～$00E8A01F(奇数)  バイトレジスタ
   //  $00E8A020～$00E8AFFF  $00E8A000～$00E8A01Fの繰り返し
   //
-  MMD_RTC_FIRST_00 {  //X68000
-    @Override public String toString () {
-      return "Real-Time Clock (00)";
-    }
-    @Override protected int mmdPbz (int a) {
-      return RP5C15.rtcPeekByte (a);
-    }
-    @Override protected int mmdRbz (int a) throws M68kException {
-       if (true) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           return super.mmdRbz (a);  //バスエラー
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       XEiJ.busSuper (MemoryMappedDevice.MMD_RTC_NEXT_00, 0x00e8a000, 0x00e8c000);  //RTC RTC
-       RP5C15.rtcUpdate ();
-       if (true) {  //X68000
-         return RP5C15.rtcReadByte (a);
-       } else {  //X68030
-         int d = RP5C15.rtcReadByte (a);
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-         return d;
-       }
-     }
-    @Override protected int mmdRwz (int a) throws M68kException {
-       return 0xff00 | mmdRbz (a + 1);
-     }
-    @Override protected int mmdRls (int a) throws M68kException {
-       return 0xff00ff00 | mmdRbz (a + 1) << 16 | mmdRbz (a + 3);
-     }
-    @Override protected void mmdWb (int a, int d) throws M68kException {
-       if (true) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           super.mmdWb (a, d);  //バスエラー
-           return;
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       XEiJ.busSuper (MemoryMappedDevice.MMD_RTC_NEXT_00, 0x00e8a000, 0x00e8c000);  //RTC RTC
-       RP5C15.rtcUpdate ();
-       RP5C15.rtcWriteByte (a, d);
-       if (false) {  //X68030
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-       }
-     }
-    @Override protected void mmdWw (int a, int d) throws M68kException {
-       mmdWb (a + 1, d);
-     }
-    @Override protected void mmdWl (int a, int d) throws M68kException {
-       mmdWb (a + 1, d >> 16);
-       mmdWb (a + 3, d);
-     }
-  },  //MMD_RTC_FIRST_00
-  MMD_RTC_FIRST_03 {  //Xellent30の030モード
-    @Override public String toString () {
-      return "Real-Time Clock (03)";
-    }
-    @Override protected int mmdPbz (int a) {
-      return RP5C15.rtcPeekByte (a);
-    }
-    @Override protected int mmdRbz (int a) throws M68kException {
-       if (false) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           return super.mmdRbz (a);  //バスエラー
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       XEiJ.busSuper (MemoryMappedDevice.MMD_RTC_NEXT_03, 0x00e8a000, 0x00e8c000);  //RTC RTC
-       RP5C15.rtcUpdate ();
-       if (true) {  //X68000
-         return RP5C15.rtcReadByte (a);
-       } else {  //X68030
-         int d = RP5C15.rtcReadByte (a);
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-         return d;
-       }
-     }
-    @Override protected int mmdRwz (int a) throws M68kException {
-       return 0xff00 | mmdRbz (a + 1);
-     }
-    @Override protected int mmdRls (int a) throws M68kException {
-       return 0xff00ff00 | mmdRbz (a + 1) << 16 | mmdRbz (a + 3);
-     }
-    @Override protected void mmdWb (int a, int d) throws M68kException {
-       if (false) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           super.mmdWb (a, d);  //バスエラー
-           return;
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       XEiJ.busSuper (MemoryMappedDevice.MMD_RTC_NEXT_03, 0x00e8a000, 0x00e8c000);  //RTC RTC
-       RP5C15.rtcUpdate ();
-       RP5C15.rtcWriteByte (a, d);
-       if (false) {  //X68030
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-       }
-     }
-    @Override protected void mmdWw (int a, int d) throws M68kException {
-       mmdWb (a + 1, d);
-     }
-    @Override protected void mmdWl (int a, int d) throws M68kException {
-       mmdWb (a + 1, d >> 16);
-       mmdWb (a + 3, d);
-     }
-  },  //MMD_RTC_FIRST_03
-  MMD_RTC_FIRST_30 {  //X68030
-    @Override public String toString () {
-      return "Real-Time Clock (30)";
-    }
-    @Override protected int mmdPbz (int a) {
-      return RP5C15.rtcPeekByte (a);
-    }
-    @Override protected int mmdRbz (int a) throws M68kException {
-       if (true) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           return super.mmdRbz (a);  //バスエラー
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       XEiJ.busSuper (MemoryMappedDevice.MMD_RTC_NEXT_30, 0x00e8a000, 0x00e8c000);  //RTC RTC
-       RP5C15.rtcUpdate ();
-       if (false) {  //X68000
-         return RP5C15.rtcReadByte (a);
-       } else {  //X68030
-         int d = RP5C15.rtcReadByte (a);
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-         return d;
-       }
-     }
-    @Override protected int mmdRwz (int a) throws M68kException {
-       return 0xff00 | mmdRbz (a + 1);
-     }
-    @Override protected int mmdRls (int a) throws M68kException {
-       return 0xff00ff00 | mmdRbz (a + 1) << 16 | mmdRbz (a + 3);
-     }
-    @Override protected void mmdWb (int a, int d) throws M68kException {
-       if (true) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           super.mmdWb (a, d);  //バスエラー
-           return;
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       XEiJ.busSuper (MemoryMappedDevice.MMD_RTC_NEXT_30, 0x00e8a000, 0x00e8c000);  //RTC RTC
-       RP5C15.rtcUpdate ();
-       RP5C15.rtcWriteByte (a, d);
-       if (true) {  //X68030
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-       }
-     }
-    @Override protected void mmdWw (int a, int d) throws M68kException {
-       mmdWb (a + 1, d);
-     }
-    @Override protected void mmdWl (int a, int d) throws M68kException {
-       mmdWb (a + 1, d >> 16);
-       mmdWb (a + 3, d);
-     }
-  },  //MMD_RTC_FIRST_30
-
-  //--------------------------------------------------------------------------------
-  //MMD_RTC_NEXT RTC
-  MMD_RTC_NEXT_00 {  //X68000
+  MMD_RTC_00 {  //X68000
     @Override public String toString () {
       return "Real-Time Clock (00)";
     }
@@ -3658,8 +3496,8 @@ public enum MemoryMappedDevice {
        mmdWb (a + 1, d >> 16);
        mmdWb (a + 3, d);
      }
-  },  //MMD_RTC_NEXT_00
-  MMD_RTC_NEXT_03 {  //Xellent30の030モード
+  },  //MMD_RTC_00
+  MMD_RTC_03 {  //Xellent30の030モード
     @Override public String toString () {
       return "Real-Time Clock (03)";
     }
@@ -3707,8 +3545,8 @@ public enum MemoryMappedDevice {
        mmdWb (a + 1, d >> 16);
        mmdWb (a + 3, d);
      }
-  },  //MMD_RTC_NEXT_03
-  MMD_RTC_NEXT_30 {  //X68030
+  },  //MMD_RTC_03
+  MMD_RTC_30 {  //X68030
     @Override public String toString () {
       return "Real-Time Clock (30)";
     }
@@ -3756,163 +3594,7 @@ public enum MemoryMappedDevice {
        mmdWb (a + 1, d >> 16);
        mmdWb (a + 3, d);
      }
-  },  //MMD_RTC_NEXT_30
-
-  //--------------------------------------------------------------------------------
-  //MMD_RTC_TEST RTC
-  MMD_RTC_TEST_00 {  //X68000
-    @Override public String toString () {
-      return "Real-Time Clock (00)";
-    }
-    @Override protected int mmdPbz (int a) {
-      return RP5C15.rtcPeekByte (a);
-    }
-    @Override protected int mmdRbz (int a) throws M68kException {
-       if (true) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           return super.mmdRbz (a);  //バスエラー
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       RP5C15.rtcTestUpdate ();
-       if (true) {  //X68000
-         return RP5C15.rtcReadByte (a);
-       } else {  //X68030
-         int d = RP5C15.rtcReadByte (a);
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-         return d;
-       }
-     }
-    @Override protected int mmdRwz (int a) throws M68kException {
-       return 0xff00 | mmdRbz (a + 1);
-     }
-    @Override protected int mmdRls (int a) throws M68kException {
-       return 0xff00ff00 | mmdRbz (a + 1) << 16 | mmdRbz (a + 3);
-     }
-    @Override protected void mmdWb (int a, int d) throws M68kException {
-       if (true) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           super.mmdWb (a, d);  //バスエラー
-           return;
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       RP5C15.rtcTestUpdate ();
-       RP5C15.rtcWriteByte (a, d);
-       if (false) {  //X68030
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-       }
-     }
-    @Override protected void mmdWw (int a, int d) throws M68kException {
-       mmdWb (a + 1, d);
-     }
-    @Override protected void mmdWl (int a, int d) throws M68kException {
-       mmdWb (a + 1, d >> 16);
-       mmdWb (a + 3, d);
-     }
-  },  //MMD_RTC_TEST_00
-  MMD_RTC_TEST_03 {  //Xellent30の030モード
-    @Override public String toString () {
-      return "Real-Time Clock (03)";
-    }
-    @Override protected int mmdPbz (int a) {
-      return RP5C15.rtcPeekByte (a);
-    }
-    @Override protected int mmdRbz (int a) throws M68kException {
-       if (false) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           return super.mmdRbz (a);  //バスエラー
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       RP5C15.rtcTestUpdate ();
-       if (true) {  //X68000
-         return RP5C15.rtcReadByte (a);
-       } else {  //X68030
-         int d = RP5C15.rtcReadByte (a);
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-         return d;
-       }
-     }
-    @Override protected int mmdRwz (int a) throws M68kException {
-       return 0xff00 | mmdRbz (a + 1);
-     }
-    @Override protected int mmdRls (int a) throws M68kException {
-       return 0xff00ff00 | mmdRbz (a + 1) << 16 | mmdRbz (a + 3);
-     }
-    @Override protected void mmdWb (int a, int d) throws M68kException {
-       if (false) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           super.mmdWb (a, d);  //バスエラー
-           return;
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       RP5C15.rtcTestUpdate ();
-       RP5C15.rtcWriteByte (a, d);
-       if (false) {  //X68030
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-       }
-     }
-    @Override protected void mmdWw (int a, int d) throws M68kException {
-       mmdWb (a + 1, d);
-     }
-    @Override protected void mmdWl (int a, int d) throws M68kException {
-       mmdWb (a + 1, d >> 16);
-       mmdWb (a + 3, d);
-     }
-  },  //MMD_RTC_TEST_03
-  MMD_RTC_TEST_30 {  //X68030
-    @Override public String toString () {
-      return "Real-Time Clock (30)";
-    }
-    @Override protected int mmdPbz (int a) {
-      return RP5C15.rtcPeekByte (a);
-    }
-    @Override protected int mmdRbz (int a) throws M68kException {
-       if (true) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           return super.mmdRbz (a);  //バスエラー
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       RP5C15.rtcTestUpdate ();
-       if (false) {  //X68000
-         return RP5C15.rtcReadByte (a);
-       } else {  //X68030
-         int d = RP5C15.rtcReadByte (a);
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-         return d;
-       }
-     }
-    @Override protected int mmdRwz (int a) throws M68kException {
-       return 0xff00 | mmdRbz (a + 1);
-     }
-    @Override protected int mmdRls (int a) throws M68kException {
-       return 0xff00ff00 | mmdRbz (a + 1) << 16 | mmdRbz (a + 3);
-     }
-    @Override protected void mmdWb (int a, int d) throws M68kException {
-       if (true) {  //Xellent30の030モード以外
-         if ((a & 1) == 0) {  //偶数アドレス
-           super.mmdWb (a, d);  //バスエラー
-           return;
-         }
-       }
-       XEiJ.mpuClockTime += XEiJ.busWaitTime.rtc;
-       RP5C15.rtcTestUpdate ();
-       RP5C15.rtcWriteByte (a, d);
-       if (true) {  //X68030
-         MC68901.mfpIoldsTransition ();  //IOLDSの遷移
-       }
-     }
-    @Override protected void mmdWw (int a, int d) throws M68kException {
-       mmdWb (a + 1, d);
-     }
-    @Override protected void mmdWl (int a, int d) throws M68kException {
-       mmdWb (a + 1, d >> 16);
-       mmdWb (a + 3, d);
-     }
-  },  //MMD_RTC_TEST_30
+  },  //MMD_RTC_30
 
   //--------------------------------------------------------------------------------
   //MMD_PRN プリンタポート

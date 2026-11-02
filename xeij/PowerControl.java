@@ -178,26 +178,26 @@ public class PowerControl {
         System.out.println ("power switch is on");
       }
       MC68901.mfpPowerFall ();
-      pwcVcc1On ();
+      pwcTurnOn ();
     } else {
       if (PWC_DEBUG) {
         System.out.println ("power switch is off");
       }
       MC68901.mfpPowerRise ();
-      pwcVcc1Off ();
+      pwcTurnOff ();
     }
     if (pwcExternalOn) {
       if (PWC_DEBUG) {
         System.out.println ("external power switch is on");
       }
       MC68901.mfpExpwonFall ();
-      pwcVcc1On ();
+      pwcTurnOn ();
     } else {
       if (PWC_DEBUG) {
         System.out.println ("external power switch is off");
       }
       MC68901.mfpExpwonRise ();
-      pwcVcc1Off ();
+      pwcTurnOff ();
     }
   }  //pwcReset
 
@@ -211,13 +211,13 @@ public class PowerControl {
           System.out.println ("power switch turned on");
         }
         MC68901.mfpPowerFall ();
-        pwcVcc1On ();
+        pwcTurnOn ();
       } else {  //ON→OFF
         if (PWC_DEBUG) {
           System.out.println ("power switch turned off");
         }
         MC68901.mfpPowerRise ();
-        pwcVcc1Off ();
+        pwcTurnOff ();
       }
     }
   }  //pwcSetPower
@@ -232,13 +232,13 @@ public class PowerControl {
           System.out.println ("external power switch turned on");
         }
         MC68901.mfpExpwonFall ();
-        pwcVcc1On ();
+        pwcTurnOn ();
       } else {  //ON→OFF
         if (PWC_DEBUG) {
           System.out.println ("external power switch turned off");
         }
         MC68901.mfpExpwonRise ();
-        pwcVcc1Off ();
+        pwcTurnOff ();
       }
     }
   }  //pwcSetRemote
@@ -256,15 +256,15 @@ public class PowerControl {
       if (PWC_DEBUG) {
         System.out.println ("system port received 0-F-F");
       }
-      pwcVcc1Off ();
+      pwcTurnOff ();
     } else {
       pwcSystemOffStep = 0;
     }
   }  //pwcWritePort
 
-  //pwcVcc1On ()
+  //pwcTurnOn ()
   //  条件を満たしていればVCC1をONにする
-  public static void pwcVcc1On () {
+  public static void pwcTurnOn () {
     //条件を確認する
     if (pwcQuitStep != 0 ||  //終了時待機前でない
         pwcVcc1On ||  //既にON
@@ -282,13 +282,17 @@ public class PowerControl {
     Indicator.indUpdateLED ();
     //RP5C15に通知する
     RP5C15.rtcTurnOn ();
+    //初期ノイズを書き込む
+    GraphicScreen.graWriteNoise ();
+    VideoController.vcnWriteNoise ();
+    SpriteScreen.sprWriteNoise ();
     //ハードウェアリセットをかけてMPUを始動する
     XEiJ.mpuReset (-1, -1);
   }  //pwcVcc1On
 
-  //pwcVcc1Off ()
+  //pwcTurnOff ()
   //  条件を満たしていればVCC1をOFFにする
-  public static void pwcVcc1Off () {
+  public static void pwcTurnOff () {
     //条件を確認する
     if (!pwcVcc1On ||  //既にOFF
         (pwcPowerOn ||  //電源スイッチがON(Low)
@@ -333,7 +337,7 @@ public class PowerControl {
       }
     }
     //電源が入る条件が揃っていたら電源を入れる
-    pwcVcc1On ();
+    pwcTurnOn ();
   }  //pwcStartup
 
   //pwcQuit ()

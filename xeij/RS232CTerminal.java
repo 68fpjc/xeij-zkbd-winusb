@@ -29,7 +29,7 @@ import com.fazecast.jSerialComm.*;  //SerialPort
 
 public class RS232CTerminal {
 
-  public static final int TRM_MAX_OUTPUT_LENGTH = 1024 * 256;  //出力の上限を256KBとする
+  public static final int TRM_MAX_OUTPUT_LENGTH = 1024 * 1024;  //出力の上限
   public static final int TRM_CUT_OUTPUT_LENGTH = TRM_MAX_OUTPUT_LENGTH + 1024 * 16;  //出力が上限よりも16KB以上長くなったら上限でカットする
 
   //コンポーネント
@@ -2273,7 +2273,7 @@ public class RS232CTerminal {
       options,
       options[0]) == 0) {
       new SimpleTask (XEiJ.tmrScheduler, (n) -> {
-        long dttm = DnT.dntDttmCmil (System.currentTimeMillis () + RP5C15.rtcCmilGap);
+        long dttm = DnT.dntDttmCmil (System.currentTimeMillis () + RP5C15.rtcGetOffset ());
         trmSendString (
           String.format ("date %04d-%02d-%02d\rtime %02d:%02d:%02d\r",
                          DnT.dntYearDttm (dttm),
@@ -2678,7 +2678,7 @@ public class RS232CTerminal {
         }
         //日時
         {
-          long dttm = DnT.dntDttmCmil (file.lastModified () + RP5C15.rtcCmilGap);  //西暦年<<42|月<<38|月通日<<32|時<<22|分<<16|秒<<10|ミリ秒。FCBの日時はRTCの日時なのでオフセットを加える
+          long dttm = DnT.dntDttmCmil (file.lastModified () + RP5C15.rtcGetOffset ());  //西暦年<<42|月<<38|月通日<<32|時<<22|分<<16|秒<<10|ミリ秒。FCBの日時はRTCの日時なのでオフセットを加える
           int date = DnT.dntYearDttm (dttm) - 1980 << 9 | DnT.dntMontDttm (dttm) << 5 | DnT.dntMdayDttm (dttm);  //(西暦年-1980)<<9|月<<5|月通日
           int time = DnT.dntHourDttm (dttm) << 11 | DnT.dntMinuDttm (dttm) << 5 | DnT.dntSecoDttm (dttm) >> 1;  //時<<11|分<<5|秒/2
           step3Data[index3++] = (byte) (date >> 8);
