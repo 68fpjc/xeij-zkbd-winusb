@@ -25,9 +25,9 @@ public class Indicator {
   public static final int IND_MPU_X = 0;
   public static final int IND_CLOCK_X = 10;
   public static final int IND_RATIO_X = 19;
-  //public static final int IND_TIMER_X = 26;
-  public static final int IND_POWER_X = 26;
-  public static final int IND_COLS = 27;
+  public static final int IND_TIMER_X = 26;
+  public static final int IND_POWER_X = 27;
+  public static final int IND_COLS = 28;
   public static final int IND_FONT_WIDTH = 6;
   public static final int IND_FONT_HEIGHT = 8;
   public static final int IND_PADDING_LEFT = 6;
@@ -129,10 +129,10 @@ public class Indicator {
     //タイマーランプ
     //  RTC CLKOUTがHighのとき赤
     //  それ以外は黒
-    //indPutChar (IND_TIMER_X,
-    //            0xff,
-    //            RP5C15.rtcProcessClkoutHigh ? indColor80 :  //赤
-    //            indBackGround);  //黒
+    indPutChar (IND_TIMER_X,
+                0xff,
+                RP5C15.rtcProcessClkoutHigh ? indColor80 :  //赤
+                indBackGround);  //黒
     //電源ランプ
     //  (VCC2がOFFのとき黒)
     //  (VCC2がONかつ)VCC1がOFFのとき赤
@@ -143,9 +143,8 @@ public class Indicator {
                   0xff,
                   !PowerControl.pwcVcc1On ? indColor80 :  //赤
                   PowerControl.pwcPowerOn ||
-                  //!RP5C15.rtcProcessAlarmHigh ?
-                  //!RP5C15.rtcProcessInvalid ? indColor40 : indColor60 :  //緑または黄
-                  !RP5C15.rtcAlarmHigh ? indColor40 :  //緑
+                  !RP5C15.rtcProcessAlarmHigh ?
+                  RP5C15.rtcProcessSync ? indColor40 : indColor60 :  //緑または黄
                   indBackGround);  //黒
     }
     indBox.repaint ();

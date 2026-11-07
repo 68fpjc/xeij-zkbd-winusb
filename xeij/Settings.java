@@ -356,6 +356,8 @@ public class Settings {
     "spr512bg1;off;" +  //512x512でBG1を表示(on/off)
     "sprrcscroll;off;" +  //行スクロールと列スクロール(on/off)
     "sprfpm;off;" +  //フルパターンメモリ(on/off)
+    "spritenoise;8;" +  //スプライトの初期ノイズ
+    "patternnoise;8;" +  //パターンの初期ノイズ
     //SND
     "sound;on;" +  //音声出力(on/off)
     "volume;20;" +  //ボリューム(0～40)
@@ -453,15 +455,21 @@ public class Settings {
     "prnscalefactor;;" +  //表示倍率
     //RTC
     "rtcbankone;off;" +  //バンク
-    "rtctimer;,,,,,,2,1,,1;" +  //日時カウンタ。ssmmhhwddmmyy。1980-01-01(Tue)
-    "rtctwentyfour;1;" +  //12/24セレクトレジスタ
-    "rtctimeren;on;" +  //タイマー
-    "rtccmiloffset;32400000;" +  //歴通ミリ秒オフセット
+    "rtctimer;,,,,,,2,1,,1;" +  //タイマーカウンタ。ssmmhhwddmmyyl。1980-01-01(Tue)
+    "rtcsystem;1;" +  //12/24セレクトレジスタ
+    "rtctimeren;on;" +  //タイマーON/OFF
+    "rtcoffset;32400000;" +  //歴通ミリ秒オフセット。初期値は動作環境のローカルタイム
+    "rtcautonomous;off;" +  //自律モード
     "rtcalarm;16,16,16,16,16,16,16;" +  //アラームレジスタ。mmhhwmm
-    "rtcalarmen;off;" +  //アラーム
-    "rtchzmode;0;" +  //Hzモード
+    "rtcalarmen;off;" +  //アラームON/OFF
+    "rtchzmode;3;" +  //Hzモード
     "rtcclkout;7;" +  //CLKOUTモード
-    "rtctestmode;0;" +  //テストモード
+    "rtctestmode;;" +  //テストモード
+    //VCN
+    "palettenoise;8;" +  //パレットの初期ノイズ
+    //GRA
+    "graphicnoise;8;" +  //グラフィックの初期ノイズ
+    "textnoise;8;" +  //テキストの初期ノイズ
     //PWC
     "powerswitch;off;" +  //電源スイッチ
     "externalswitch;off;" +  //外部電源スイッチ
@@ -716,6 +724,9 @@ public class Settings {
 
     //言語
     sgsStartMap.put ("lang", Multilingual.mlnLang);
+
+    //時刻
+    sgsStartMap.put ("rtcoffset", String.valueOf (TimeZone.getDefault ().getRawOffset ()));
 
     if (false) {
       //すべての環境変数を表示する

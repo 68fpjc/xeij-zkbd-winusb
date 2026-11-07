@@ -46,15 +46,15 @@ public class XEiJ {
 
   //名前とバージョン
   public static final String PRG_TITLE = "XEiJ (X68000 Emulator in Java)";  //タイトル
-  public static final String PRG_VERSION = "0.26.10.08";  //バージョン
+  public static final String PRG_VERSION = "0.26.11.08";  //バージョン
   public static final String PRG_AUTHOR = "Makoto Kamada";  //作者
   public static final String PRG_WEBPAGE = "https://stdkmd.net/xeij/";  //ウェブページ
 
   public static final String PRG_JAVA_VENDOR = "Oracle Corporation";  //動作を確認しているJavaのベンダー
-  public static final String PRG_JAVA_VERSION = "26.0.2.1";  //動作を確認しているJavaのバージョン
+  public static final String PRG_JAVA_VERSION = "27.0.1.0.3";  //動作を確認しているJavaのバージョン
   public static final String PRG_OS_ARCH = "amd64";  //動作を確認しているOSのアーキテクチャ
   public static final String PRG_OS_NAME = "Windows 11";  //動作を確認しているOSの名前
-  public static final String PRG_JAVA_MINIMUM_REQUIRED = "26";  //Javaの最低要件
+  public static final String PRG_JAVA_MINIMUM_REQUIRED = "27";  //Javaの最低要件
 
   //全体の設定
   //  bit0..3のテストにシフトを使う
@@ -251,6 +251,7 @@ public class XEiJ {
     ROM.romInit ();  //ROM ROM。mpuInit()よりも前。mmrInitよりも後
     CRTC.crtInit ();  //CRT CRTコントローラ
     VideoController.vcnInit ();  //VCN ビデオコントローラ
+    GraphicScreen.graInit ();  //GRA グラフィック画面
     HD63450.dmaInit ();  //DMA DMAコントローラ
     svsInit ();  //SVS スーパーバイザ領域設定
     MC68901.mfpInit ();  //MFP MFP
@@ -370,7 +371,6 @@ public class XEiJ {
       (MC68060.MMU_DEBUG_COMMAND ? " MC68060.MMU_DEBUG_COMMAND" : "") +
       (MC68060.MMU_DEBUG_TRANSLATION ? " MC68060.MMU_DEBUG_TRANSLATION" : "") +
       (MC68060.MMU_NOT_ALLOCATE_CACHE ? " MC68060.MMU_NOT_ALLOCATE_CACHE" : "") +
-      (RP5C15.RTC_DEBUG_TRACE ? " RP5C15.RTC_DEBUG_TRACE" : "") +
       (SPC.SPC_DEBUG_ON ? " SPC.SPC_DEBUG_ON" : "") +
       (Z8530.SCC_DEBUG_ON ? " Z8530.SCC_DEBUG_ON" : "")
       );
@@ -618,6 +618,18 @@ public class XEiJ {
         System.out.println ("prgTini: call lnfTini");
       }
       LnF.lnfTini ();
+      if (prgTiniLog) {
+        System.out.println ("prgTini: call rtcTini");
+      }
+      RP5C15.rtcTini ();
+      if (prgTiniLog) {
+        System.out.println ("prgTini: call vcnTini");
+      }
+      VideoController.vcnTini ();
+      if (prgTiniLog) {
+        System.out.println ("prgTini: call graTini");
+      }
+      GraphicScreen.graTini ();
       if (prgTiniLog) {
         System.out.println ("prgTini: call tmrTini");
       }
@@ -3144,6 +3156,9 @@ public class XEiJ {
         case "Adjust clock to host":  //時計をホストに合わせる
           RP5C15.rtcSetByHost ();
           break;
+        case "Autonomous mode":  //自律モード
+          RP5C15.rtcSetAutonomous (((JCheckBoxMenuItem) source).isSelected ());
+          break;
           //  SRAM
           //  設定ファイル
           //
@@ -3837,6 +3852,74 @@ public class XEiJ {
           ),  //Modification
         "ja", "改造");
 
+    //初期ノイズ
+    DecimalSpinner graphicNoiseSpinner = ComponentFactory.createDecimalSpinner (
+      GraphicScreen.graGraphicNoise, 0, 16, 1, 0,
+      (ce) -> {
+        GraphicScreen.graGraphicNoise = ((DecimalSpinner) ce.getSource ()).getIntValue ();
+      });
+    DecimalSpinner textNoiseSpinner = ComponentFactory.createDecimalSpinner (
+      GraphicScreen.graTextNoise, 0, 16, 1, 0,
+      (ce) -> {
+        GraphicScreen.graTextNoise = ((DecimalSpinner) ce.getSource ()).getIntValue ();
+      });
+    DecimalSpinner paletteNoiseSpinner = ComponentFactory.createDecimalSpinner (
+      VideoController.vcnPaletteNoise, 0, 16, 1, 0,
+      (ce) -> {
+        VideoController.vcnPaletteNoise = ((DecimalSpinner) ce.getSource ()).getIntValue ();
+      });
+    DecimalSpinner spriteNoiseSpinner = ComponentFactory.createDecimalSpinner (
+      SpriteScreen.sprSpriteNoise, 0, 16, 1, 0,
+      (ce) -> {
+        SpriteScreen.sprSpriteNoise = ((DecimalSpinner) ce.getSource ()).getIntValue ();
+      });
+    DecimalSpinner patternNoiseSpinner = ComponentFactory.createDecimalSpinner (
+      SpriteScreen.sprPatternNoise, 0, 16, 1, 0,
+      (ce) -> {
+        SpriteScreen.sprPatternNoise = ((DecimalSpinner) ce.getSource ()).getIntValue ();
+      });
+    JMenu noiseMenu =
+      Multilingual.mlnText (
+        ComponentFactory.createMenu (
+          "Initial noise",
+          ComponentFactory.createHorizontalBox (
+            graphicNoiseSpinner,
+            Multilingual.mlnText (
+              ComponentFactory.createLabel (" Graphic VRAM"),
+              "ja", " グラフィックVRAM"),
+            Box.createHorizontalGlue ()
+            ),
+          ComponentFactory.createHorizontalBox (
+            textNoiseSpinner,
+            Multilingual.mlnText (
+              ComponentFactory.createLabel (" Text VRAM"),
+              "ja", " テキストVRAM"),
+            Box.createHorizontalGlue ()
+            ),
+          ComponentFactory.createHorizontalBox (
+            paletteNoiseSpinner,
+            Multilingual.mlnText (
+              ComponentFactory.createLabel (" Palette register"),
+              "ja", " パレットレジスタ"),
+            Box.createHorizontalGlue ()
+            ),
+          ComponentFactory.createHorizontalBox (
+            spriteNoiseSpinner,
+            Multilingual.mlnText (
+              ComponentFactory.createLabel (" Sprite scroll register"),
+              "ja", " スプライトスクロールレジスタ"),
+            Box.createHorizontalGlue ()
+            ),
+          ComponentFactory.createHorizontalBox (
+            patternNoiseSpinner,
+            Multilingual.mlnText (
+              ComponentFactory.createLabel (" Pattern memory"),
+              "ja", " パターンメモリ"),
+            Box.createHorizontalGlue ()
+            )
+          ),
+        "ja", "初期ノイズ");
+
     //メニューバー
     mnbMenuBar = ComponentFactory.createMenuBar (
 
@@ -3987,7 +4070,8 @@ public class XEiJ {
           //改造
           ComponentFactory.createHorizontalSeparator (),
           modificationMenu,
-          //
+          //初期ノイズ
+          noiseMenu,
           //故障画面
           !Malfunction.MLF_ON ? null :
           Multilingual.mlnText (
@@ -4200,7 +4284,12 @@ public class XEiJ {
             "RTC",
             Multilingual.mlnText (
               ComponentFactory.createMenuItem ("Adjust clock to host", listener),
-              "ja", "時計をホストに合わせる")
+              "ja", "時計をホストに合わせる"),
+            Multilingual.mlnText (
+              ComponentFactory.createCheckBoxMenuItem (
+                RP5C15.rtcAutonomousRequest,
+                "Autonomous mode", listener),
+              "ja", "自律モード")
             ),
           Z8530.sccMakeMenu (),
           SRAM.smrMenu,
@@ -7297,8 +7386,6 @@ public class XEiJ {
     long nanoStart = System.nanoTime ();
     //コアタスクをロック
     CoreTask.lock ();
-    //RTCを準備する
-    RP5C15.rtcExecuteCore ();
     //コアを呼び出す
     if (currentMPU < Model.MPU_MC68010) {
       MC68000.mpuCore ();
@@ -9136,7 +9223,7 @@ public class XEiJ {
   //  8bit I/Oポートの偶数アドレスのバイトアクセスがバスエラーになる
   public static void busSetPortMap_00 () {
     busSuper (MemoryMappedDevice.MMD_MFP_00, 0x00e88000, 0x00e8a000);  //MFP MFP
-    busSuper (MemoryMappedDevice.MMD_RTC_FIRST_00, 0x00e8a000, 0x00e8c000);  //RTC RTC
+    busSuper (MemoryMappedDevice.MMD_RTC_00, 0x00e8a000, 0x00e8c000);  //RTC RTC
     busSuper (MemoryMappedDevice.MMD_OPM_00, 0x00e90000, 0x00e92000);  //OPM FM音源
     busSuper (MemoryMappedDevice.MMD_PCM_00, 0x00e92000, 0x00e94000);  //PCM ADPCM音源
     busSuper (MemoryMappedDevice.MMD_FDC_00, 0x00e94000, 0x00e96000);  //FDC FDコントローラ
@@ -9151,7 +9238,7 @@ public class XEiJ {
   //  8bit I/Oポートの偶数アドレスのバイトアクセスがバスエラーにならない
   public static void busSetPortMap_03 () {
     busSuper (MemoryMappedDevice.MMD_MFP_03, 0x00e88000, 0x00e8a000);  //MFP MFP
-    busSuper (MemoryMappedDevice.MMD_RTC_FIRST_03, 0x00e8a000, 0x00e8c000);  //RTC RTC
+    busSuper (MemoryMappedDevice.MMD_RTC_03, 0x00e8a000, 0x00e8c000);  //RTC RTC
     busSuper (MemoryMappedDevice.MMD_OPM_03, 0x00e90000, 0x00e92000);  //OPM FM音源
     busSuper (MemoryMappedDevice.MMD_PCM_03, 0x00e92000, 0x00e94000);  //PCM ADPCM音源
     busSuper (MemoryMappedDevice.MMD_FDC_03, 0x00e94000, 0x00e96000);  //FDC FDコントローラ
@@ -9166,7 +9253,7 @@ public class XEiJ {
   //  8bit I/Oポートの偶数アドレスのバイトアクセスがバスエラーになる
   public static void busSetPortMap_30 () {
     busSuper (MemoryMappedDevice.MMD_MFP_30, 0x00e88000, 0x00e8a000);  //MFP MFP
-    busSuper (MemoryMappedDevice.MMD_RTC_FIRST_30, 0x00e8a000, 0x00e8c000);  //RTC RTC
+    busSuper (MemoryMappedDevice.MMD_RTC_30, 0x00e8a000, 0x00e8c000);  //RTC RTC
     busSuper (MemoryMappedDevice.MMD_OPM_30, 0x00e90000, 0x00e92000);  //OPM FM音源
     busSuper (MemoryMappedDevice.MMD_PCM_30, 0x00e92000, 0x00e94000);  //PCM ADPCM音源
     busSuper (MemoryMappedDevice.MMD_FDC_30, 0x00e94000, 0x00e96000);  //FDC FDコントローラ

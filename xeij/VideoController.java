@@ -1078,6 +1078,9 @@ public class VideoController {
   //未実装画面モード
   public static final HashSet<String> vcnUnimplementedSet = new HashSet<String> ();  //報告済みの画面モード
 
+  //初期ノイズ
+  public static int vcnPaletteNoise;  //パレットの初期ノイズ
+
   //vcnInit ()
   //  ビデオコントローラを初期化する
   public static void vcnInit () {
@@ -1111,10 +1114,13 @@ public class VideoController {
       }
     }
     //vcnPal16G8Port = new int[256];
-    //Arrays.fill (vcnPal16G8Port, 0);
     vcnPal16G8 = vcnPal16G8Port;
     //vcnPal16TSPort = new int[256];
-    //Arrays.fill (vcnPal16TSPort, 0);
+    //
+    //初期ノイズ
+    vcnPaletteNoise = Settings.sgsGetInt ("palettenoise", 8, 0, 16);
+    vcnWriteNoise ();
+    //
     if (SpriteScreen.SPR_PATTEST_ON) {
       //vcnPal16TSTest = new int[256];
       //Arrays.fill (vcnPal16TSTest, 0);
@@ -1188,6 +1194,12 @@ public class VideoController {
     vcnReset ();
 
   }  //vcnInit
+
+  //vcnTini ()
+  //  後始末
+  public static void vcnTini () {
+    Settings.sgsPutInt ("palettenoise", vcnPaletteNoise);
+  }  //vcnTini
 
   //vcnMakeTable0 (grmm)
   //  描画モード0のテーブルを作る
@@ -3648,6 +3660,18 @@ public class VideoController {
     return ((x & 0b11111_00000_11111_0    ) + (y & 0b11111_00000_11111_0) >> 1 & 0b11111_00000_11111_0 |
             (x & 0b00000_11111_00000_0 | 1) + (y & 0b00000_11111_00000_1) >> 1 & 0b00000_11111_00000_1);
   }  //vcnMix2(int,int)
+
+
+
+  //vcnWriteNoise ()
+  //  初期ノイズを書き込む
+  public static void vcnWriteNoise () {
+    //Malfunction.reset ();
+    Malfunction.fill (vcnPal16G8Port, 0, 256, vcnPaletteNoise, 0xffff);
+    Malfunction.fill (vcnPal16TSPort, 0, 256, vcnPaletteNoise, 0xffff);
+  }  //vcnWriteNoise
+
+
 
 }  //class VideoController
 
