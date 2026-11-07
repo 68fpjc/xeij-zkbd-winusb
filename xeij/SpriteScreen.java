@@ -246,6 +246,10 @@ public class SpriteScreen {
   public static boolean spr768x512;  //true=制限を解除する
   public static boolean sprAccessible;  //true=スプライト画面を表示できる(CRTCのR20の下位5ビットが%1xx1xでないまたは制限が解除されている)
 
+  //スプライト画面の最大幅
+  //  sprMaximumWidth = spr768x512 ? 1024 : (sprReg8ResoCurr & 3) != 0 ? 512 : 256;
+  public static int sprMaximumWidth;
+
   //512x512でBG1を表示
   //  512x512のときはバックグラウンドを1面しか表示できないという制限を解除します。
   //  256x256のときと同様に512x512のときもバックグラウンドを2面表示できるようになります。
@@ -282,6 +286,10 @@ public class SpriteScreen {
   //    https://x.com/youkan700/status/2018670570163077315
   public static boolean sprFPMRequest;
   public static boolean sprFPM;  //false=無効,true=有効
+
+  //初期ノイズ
+  public static int sprSpriteNoise;
+  public static int sprPatternNoise;
 
   //sprInit ()
   //  スプライト画面を初期化する
@@ -488,6 +496,11 @@ public class SpriteScreen {
     //フルパターンメモリ
     sprFPMRequest = Settings.sgsGetOnOff ("sprfpm");
 
+    //初期ノイズ
+    sprSpriteNoise = Settings.sgsGetInt ("spritenoise", 8, 0, 16);
+    sprPatternNoise = Settings.sgsGetInt ("patternnoise", 8, 0, 16);
+    sprWriteNoise ();
+
     sprReset ();
   }  //sprInit()
 
@@ -509,6 +522,10 @@ public class SpriteScreen {
     }
     //フルパターンメモリ
     Settings.sgsPutOnOff ("sprfpm", sprFPMRequest);
+    //初期ノイズ
+    Settings.sgsPutInt ("spritenoise", sprSpriteNoise);
+    Settings.sgsPutInt ("patternnoise", sprPatternNoise);
+    sprWriteNoise ();
   }
 
   //sprReset ()
@@ -517,6 +534,7 @@ public class SpriteScreen {
     //スプライトの枚数
     sprNumberOfSprites = sprNumberOfSpritesRequest;
     //4096個のパターン
+    boolean prevBankOn = sprBankOn;
     sprBankOn = sprBankOnRequest;
     sprBankMode = 0;
     sprBankShifted = false;
@@ -524,6 +542,8 @@ public class SpriteScreen {
     //768x512でスプライトを表示
     spr768x512 = spr768x512Request;
     sprAccessible = spr768x512;
+    //スプライト画面の最大幅
+    sprMaximumWidth = spr768x512 ? 1024 : (sprReg8ResoCurr & 3) != 0 ? 512 : 256;
     //512x512でBG1を表示
     spr512bg1 = spr512bg1Request;
     if (SPR_RC_SCROLL_ON) {
@@ -533,49 +553,22 @@ public class SpriteScreen {
       Arrays.fill (sprColScroll, 0);
     }
     //フルパターンメモリ
+    boolean prevFPM = sprFPM;
     sprFPM = sprFPMRequest;
 
-    Arrays.fill (sprX, (short) 0);
-    Arrays.fill (sprY, (short) 0);
-    Arrays.fill (sprNumPort, (short) 0);
-    Arrays.fill (sprColPort, (short) 0);
-    Arrays.fill (sprPrw, (byte) 0);
-    Arrays.fill (sprH, false);
-    Arrays.fill (sprV, false);
-    Arrays.fill (sprSPCS, false);
-    Arrays.fill (sprRRmap, 0);
-    if (sprBankOn) {  //4096個のパターンが有効
-      //バンク0～15を0x00000000にする
-      Arrays.fill (sprPatPort, 0x00000000);
-    } else if (sprFPM) {  //フルパターンメモリが有効
-      //バンク0～1を0x00000000にする
-      Arrays.fill (sprPatPort, 0, 8192 * 2, 0x00000000);
-      //バンク2～15を0xffffffffにする
-      Arrays.fill (sprPatPort, 8192 * 2, 8192 * 16, 0xffffffff);
-    } else {  //どちらでもないとき
-      //バンク0を0x00000000にする
-      Arrays.fill (sprPatPort, 0, 8192 * 1, 0x00000000);
-      //バンク1～15を0xffffffffにする
-      Arrays.fill (sprPatPort, 8192 * 1, 8192 * 16, 0xffffffff);
+    if ((prevBankOn || prevFPM) != (sprBankOn || sprFPM)) {
+      if (sprBankOn || sprFPM) {
+        sprWritePatternNoise (1, 2, true);  //バンク1はノイズ
+      } else {
+        sprWritePatternNoise (1, 2, false);  //バンク1は豆腐
+      }
     }
-    Arrays.fill (sprPPmap, 0);
-    if (sprFPM) {  //フルパターンメモリが有効
-      //バンク0～1を0x0000にする
-      Arrays.fill (sprTNum, (short) (0x00 << 3));
-      Arrays.fill (sprTColPort, (short) (0x0 << 4));
-      Arrays.fill (sprTH, false);
-      Arrays.fill (sprTV, false);
-    } else {  //フルパターンメモリが無効
-      //バンク0を0x0000にする
-      Arrays.fill (sprTNum, 0, 4096 * 2, (short) (0x00 << 3));
-      Arrays.fill (sprTColPort, 0, 4096 * 2, (short) (0x0 << 4));
-      Arrays.fill (sprTH, 0, 4096 * 2, false);
-      Arrays.fill (sprTV, 0, 4096 * 2, false);
-      //バンク1を0xffffにする
-      Arrays.fill (sprTNum, 4096 * 2, 4096 * 4, (short) (0xff << 3));
-      Arrays.fill (sprTColPort, 4096 * 2, 4096 * 4, (short) (0xf << 4));
-      Arrays.fill (sprTH, 4096 * 2, 4096 * 4, true);
-      Arrays.fill (sprTV, 4096 * 2, 4096 * 4, true);
+    if (prevBankOn != sprBankOn) {
+      if (sprBankOn) {
+        sprWritePatternNoise (2, 16, true);  //バンク2～15はノイズ
+      } else {
+        sprWritePatternNoise (2, 16, false);  //バンク2～15は豆腐
+      }
     }
   }  //sprReset()
 
@@ -693,6 +686,11 @@ public class SpriteScreen {
     //水平映像開始位置の指定に伴う補正
     int hStart = (sprReg6HBackEndCurr - CRTC.crtR02HBackEndCurr - 4) << 3;
     int width16 = 16 + XEiJ.pnlScreenWidth;
+    //最大幅を超える位置にあるスプライトをダブらせる
+    for (int x = 16 + sprMaximumWidth; x < width16; x++) {
+      sprBuffer[2112 + x] = sprShadowBuffer[2112 + x] & 0x0f0f0f00;
+      sprBuffer[1056 + x] = sprShadowBuffer[1056 + x] & 0x0f0f0f00;
+    }
     //ラスタにかかっているスプライトの数
     int cnt = sprSpritesPerRaster;  //1ラスタあたりのスプライト数-ラスタにかかっているスプライトの数
     if (cnt == 0) {
@@ -1701,6 +1699,7 @@ public class SpriteScreen {
           int curr = sprReg8ResoPort & ~sprReg8ResoMask | sprReg8ResoTest & sprReg8ResoMask;
           if (sprReg8ResoCurr != curr) {
             sprReg8ResoCurr = curr;
+            sprMaximumWidth = spr768x512 ? 1024 : (sprReg8ResoCurr & 3) != 0 ? 512 : 256;
             CRTC.crtRestart ();
           }
         }
@@ -1857,6 +1856,97 @@ public class SpriteScreen {
     sprWriteWord (a, d >> 16);
     sprWriteWord (a + 2, d);
   }  //sprWriteLong
+
+
+
+  //sprWriteNoise ()
+  //  初期ノイズを書き込む
+  public static void sprWriteNoise () {
+    //Malfunction.reset ();
+    Arrays.fill (sprRRmap, 0);
+    Arrays.fill (sprPPmap, 0);
+    for (int n = 0; n < SPR_COUNT; n++) {
+      int d = Malfunction.random (sprSpriteNoise);
+      sprV[n] = (d & 0x80000000) != 0;  //上下反転
+      sprH[n] = (d & 0x40000000) != 0;  //左右反転
+      sprColPort[n] = (short) ((d & 0x0f000000) >> 20);  //パレットブロック<<4
+      int num = (d & 0x00ff0000) >> 16;
+      sprNumPort[n] = (short) num;  //パターン番号
+      sprSPCS[n] = (d & 0x00000004) != 0;  //スプライトチップセレクト
+      int prw = (d & 0x00000003);
+      sprPrw[n] = (byte) prw;  //プライオリティ
+      d = Malfunction.random (sprSpriteNoise);
+      sprX[n] = (short) ((d & 0x03ff0000) >> 16);  //x座標
+      int y = (d & 0x000003ff);
+      sprY[n] = (short) y;  //y座標
+      if (prw != 0) {
+        int mask = 0x80000000 >>> n;
+        int i = y << (SPR_SHIFT - 5) | n >> 5;
+        sprRRmap[i                          ] |= mask;
+        sprRRmap[i + ( 1 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + ( 2 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + ( 3 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + ( 4 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + ( 5 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + ( 6 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + ( 7 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + ( 8 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + ( 9 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + (10 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + (11 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + (12 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + (13 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + (14 << (SPR_SHIFT - 5))] |= mask;
+        sprRRmap[i + (15 << (SPR_SHIFT - 5))] |= mask;
+        sprPPmap[num << (SPR_SHIFT - 5) | n >> 5] |= mask;
+      }
+    }
+    sprWritePatternNoise (0, 1, true);  //バンク0はノイズ
+    if (sprBankOn || sprFPM) {
+      sprWritePatternNoise (1, 2, true);  //バンク1はノイズ
+    } else {
+      sprWritePatternNoise (1, 2, false);  //バンク1は豆腐
+    }
+    if (sprBankOn) {
+      sprWritePatternNoise (2, 16, true);  //バンク2～15はノイズ
+    } else {
+      sprWritePatternNoise (2, 16, false);  //バンク2～15は豆腐
+    }
+  }  //sprWriteNoise
+
+  //sprWritePatternNoise (bank0, bank1, noise)
+  //  パターンの指定されたバンクに豆腐またはノイズを書き込む
+  //  bank0  開始バンク
+  //  bank1  終了バンク(含まない)
+  //  noise  false=豆腐(存在しない),true=ノイズ(存在する)
+  //  bank  address  pattern  sprPatPort  page   cell
+  //     0   eb8000        0           0     -      -
+  //         eba000       64        2048     -      -
+  //         ebc000      128        4096     0      0
+  //         ebe000      192        6144     1   4096
+  //     1   eb8000      256        8192     -      -
+  //         eba000      320       10240     -      -
+  //         ebc000      384       12288     2   8192
+  //         ebe000      448       14336     3  12288
+  //     2   eb8000      512       16384     -      -
+  //    16              4096      131072        16384
+  public static void sprWritePatternNoise (int bank0, int bank1, boolean noise) {
+    if (noise) {  //ノイズ
+      Malfunction.fill (sprPatPort, 8192 * bank0, 8192 * bank1, sprPatternNoise, -1);
+    } else {  //豆腐
+      Arrays.fill (sprPatPort, 8192 * bank0, 8192 * bank1, -1);
+    }
+    int p0 = Math.min (16384, 8192 * bank0);
+    int p1 = Math.min (16384, 8192 * bank1);
+    for (int p = p0; p < p1; p++) {
+      int i = 8192 + (p & 8192) + p;
+      int d = (i & 1) == 0 ? sprPatPort[i >> 1] >>> 16 : (char) sprPatPort[i >> 1];
+      sprTV[p] = (d & 0x8000) != 0;  //上下反転
+      sprTH[p] = (d & 0x4000) != 0;  //左右反転
+      sprTColPort[p] = (short) ((d & 0x0f00) >> 4);  //パレットブロック<<4
+      sprTNum[p] = (short) ((d & 0x00ff) << 3);  //パターン番号<<3
+    }
+  }  //sprWritePatternNoise
 
 
 

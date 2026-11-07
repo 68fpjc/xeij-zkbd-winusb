@@ -15,6 +15,7 @@ package xeij;
 import java.awt.*;  //FlowLayout
 import java.awt.event.*;  //ActionListener
 import javax.swing.*;
+import java.util.function.IntSupplier;
 
 class Malfunction {
 
@@ -985,12 +986,65 @@ GVRAM (512 DOTS 16 COLORS)
 
   //w = random ()
   //  疑似乱数
-  private static int random () {
+  public static int random () {
     int t = x ^ (x << 11);
     x = y;
     y = z;
     z = w;
     return w = (w ^ (w >>> 19)) ^ (t ^ (t >>> 8));
   }  //random
+
+  private static IntSupplier[] array = new IntSupplier[] {
+    () -> 0,
+    () -> ((random () & random ()) & random ()) & random (),
+    () -> (random () & random ()) & random (),
+    () -> ((random () | random ()) & random ()) & random (),
+    () -> random () & random (),
+    () -> ((random () & random ()) | random ()) & random (),
+    () -> (random () | random ()) & random (),
+    () -> ((random () | random ()) | random ()) & random (),
+    () -> random (),
+    () -> ((random () & random ()) & random ()) | random (),
+    () -> (random () & random ()) | random (),
+    () -> ((random () | random ()) & random ()) | random (),
+    () -> random () | random (),
+    () -> ((random () & random ()) | random ()) | random (),
+    () -> (random () | random ()) | random (),
+    () -> ((random () | random ()) | random ()) | random (),
+    () -> -1,
+  };
+  public static void fill (byte[] a, int s, int e, int k, int m) {
+    IntSupplier f = array[k];
+    for (int i = s; i < e; i++) {
+      a[i] = (byte) (f.getAsInt () & m);
+    }
+  }  //fill
+  public static void fill (short[] a, int s, int e, int k, int m) {
+    IntSupplier f = array[k];
+    for (int i = s; i < e; i++) {
+      a[i] = (short) (f.getAsInt () & m);
+    }
+  }  //fill
+  public static void fill (int[] a, int s, int e, int k, int m) {
+    IntSupplier f = array[k];
+    for (int i = s; i < e; i++) {
+      a[i] = f.getAsInt () & m;
+    }
+  }  //fill
+  public static void fill (boolean[] a, int s, int e, int k) {
+    IntSupplier f = array[k];
+    for (int i = s; i < e; i++) {
+      a[i] = f.getAsInt () < 0;
+    }
+  }  //fill
+  public static int random (int k) {
+    return array[k].getAsInt ();
+  }  //random
+  public static void reset () {
+    x = 123456789;
+    y = 362436069;
+    z = 521288629;
+    w = 88675123;
+  }  //reset
 
 }  //class Malfunction

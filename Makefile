@@ -7,7 +7,7 @@ endif
 JAR = $(JAVA_HOME)/bin/jar
 JAVA = $(JAVA_HOME)/bin/java
 JAVAC = $(JAVA_HOME)/bin/javac
-JAVA_MINIMUM_REQUIRED = 26
+JAVA_MINIMUM_REQUIRED = 27
 
 # classpath separator
 ifeq ("$(OS)","Windows_NT")
