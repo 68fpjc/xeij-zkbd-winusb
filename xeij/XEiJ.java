@@ -46,7 +46,7 @@ public class XEiJ {
 
   //名前とバージョン
   public static final String PRG_TITLE = "XEiJ (X68000 Emulator in Java)";  //タイトル
-  public static final String PRG_VERSION = "0.26.11.01";  //バージョン
+  public static final String PRG_VERSION = "0.26.11.08";  //バージョン
   public static final String PRG_AUTHOR = "Makoto Kamada";  //作者
   public static final String PRG_WEBPAGE = "https://stdkmd.net/xeij/";  //ウェブページ
 
